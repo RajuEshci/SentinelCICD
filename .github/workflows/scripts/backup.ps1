@@ -115,7 +115,7 @@ $dbBackupFile = Join-Path $DbBackupDir "${DbName}_$timestamp.bak"
 $sqlQuery = "BACKUP DATABASE [$DbName] TO DISK = N'$dbBackupFile' WITH INIT, COMPRESSION, STATS = 10;"
 
 Write-Host "Running: sqlcmd -S $DbServer -E -Q ""$sqlQuery"""
-sqlcmd -S $DbServer -E -N false -Q $sqlQuery
+sqlcmd -S $DbServer -E -Q "$sqlQuery"
 
 if ($LASTEXITCODE -ne 0) {
     throw "Database backup FAILED (sqlcmd exit code $LASTEXITCODE). Check that the SQL Server service account can write to '$dbBackupFile'."
