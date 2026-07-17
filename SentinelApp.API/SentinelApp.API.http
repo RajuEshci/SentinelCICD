@@ -1,0 +1,6 @@
+@SentinelApp.API_HostAddress = http://localhost:5080
+
+GET {{SentinelApp.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

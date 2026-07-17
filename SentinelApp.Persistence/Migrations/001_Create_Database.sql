@@ -1,0 +1,4 @@
+IF DB_ID('SentinelApp') IS NULL
+BEGIN
+	 CREATE DATABASE SentinelApp;
+END

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+
+	<div style="background-color: #ffffff; border-radius: 8px; padding: 20px; max-width: 600px; margin: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+
+		<h2 style="color: #2c3e50;">Approval Request</h2>
+
+		<p><strong>User Email:</strong> {{useremail}}</p>
+		<p><strong>User Selection:</strong> {{userselection}}</p>
+		<p><strong>Message:</strong></p>
+		<blockquote style="background-color: #f0f0f0; padding: 10px 15px; border-left: 4px solid #3498db;">
+			{{message}}
+		</blockquote>
+
+		<p>Please select one of the following actions:</p>
+
+		<div style="margin-top: 20px;">
+			<!-- Generate PL Code Button -->
+			<a href="{{generateplurl}}"
+			   style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px 10px 5px 0; display: inline-block;">
+				✅ Generate PL Code
+			</a>
+
+			<!-- Generate LS Code Button -->
+			<a href="{{generatelsurl}}"
+			   style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px 10px 5px 0; display: inline-block;">
+				✅  Generate LS Code
+			</a>
+
+			<!-- Reject Button -->
+			<a href="{{rejecturl}}"
+			   style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px 0; display: inline-block;">
+				❌ Reject
+			</a>
+		</div>
+		<div style="text-align: center; margin: 20px 0 10px; color: #666; font-size: 13px;">
+			⏳ <em>This email link will expire in  {{expiredays}} days.</em>
+		</div>
+		<p style="margin-top: 30px;">Thank you,<br>Sentinel App Team</p>
+	</div>
+
+</body>
+</html>
+
+
+

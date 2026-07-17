@@ -1,0 +1,93 @@
+name: Develop CI/CD
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  build-deploy:
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set Initial Stage
+      run: echo "FAILED_STAGE=START" >> $GITHUB_ENV
+
+    - name: Build
+      run: |
+        echo "FAILED_STAGE=BUILD" >> $GITHUB_ENV
+        dotnet build --configuration Release
+
+    - name: Publish
+      run: |
+        echo "FAILED_STAGE=PUBLISH" >> $GITHUB_ENV
+        dotnet publish -c Release -o publish
+
+    - name: Backup IIS
+      run: |
+        echo "FAILED_STAGE=BACKUP_IIS" >> $GITHUB_ENV
+        powershell .github/workflows/scripts/backup.ps1 `
+          -SitePath "${{ secrets.IIS_SITE_PATH }}" `
+          -AppPool "${{ secrets.APP_POOL_NAME }}"
+
+    - name: Deploy
+      run: |
+        echo "FAILED_STAGE=DEPLOY" >> $GITHUB_ENV
+        powershell .github/workflows/scripts/deploy.ps1 `
+          -SitePath "${{ secrets.IIS_SITE_PATH }}" `
+          -AppPool "${{ secrets.APP_POOL_NAME }}"
+
+    - name: Verify App Pool
+      run: |
+        Write-Host "Checking App Pool Status... "
+        Import-Module WebAdministration
+        $poolStatus = Get-WebAppPoolState -Name "${{ secrets.APP_POOL_NAME }}"
+        Write-Host "App Pool Status: $($poolStatus.Value)"
+        if ($poolStatus.Value -ne "Started") {
+          Write-Host "ERROR: App Pool is not running!"
+          exit 1
+        }
+        Write-Host "App Pool is running"
+
+    - name: Health Check
+      run: |
+        echo "FAILED_STAGE=HEALTH_CHECK" >> $env:GITHUB_ENV
+
+        $healthUrl = "${{ secrets.HEALTH_URL }}"
+
+        Write-Host "Health Check URL: $healthUrl"
+
+        $maxAttempts = 5
+        $attempt = 0
+
+        while ($attempt -lt $maxAttempts) {
+            $attempt++
+            Write-Host "Attempt $attempt of $maxAttempts..."
+
+            $statusCode = curl.exe -s -o nul -w "%{http_code}" $healthUrl
+
+            Write-Host "Status Code: $statusCode"
+
+            if ($statusCode -eq "200") {
+                Write-Host "Health Check PASSED"
+                exit 0
+            }
+
+            if ($attempt -lt $maxAttempts) {
+                Start-Sleep -Seconds 2
+            }
+        }
+
+        Write-Host "Health Check FAILED after $maxAttempts attempts"
+        exit 1
+
+
+
+    - name: Rollback on Failure
+      if: failure()
+      run: |
+        Write-Host "Pipeline failed at stage: $env:FAILED_STAGE"
+        powershell .github/workflows/scripts/rollback.ps1 -SitePath "${{ secrets.IIS_SITE_PATH }}"
+      env:
+        FAILED_STAGE: "Deployment"

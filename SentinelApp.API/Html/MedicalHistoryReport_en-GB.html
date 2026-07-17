@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+	<style>
+
+		body {
+			font-family: Arial;
+			font-size: 14px;
+		}
+
+		.question {
+			font-weight: bold;
+		}
+
+		.answer {
+			margin-left: 15px;
+		}
+	</style>
+
+</head>
+
+<body>
+
+	<h2>Medical History Report</h2>
+
+	{{ for item in Questions }}
+
+	<div class="question">
+
+		{{ item.Question }}
+
+	</div>
+
+	{{ for ans in item.Answers }}
+
+	<div class="answer">
+
+		{{ ans }}
+
+	</div>
+
+	{{ end }}
+
+	<br />
+
+	{{ end }}
+
+</body>
+
+</html>
