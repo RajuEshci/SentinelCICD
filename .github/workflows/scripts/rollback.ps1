@@ -81,7 +81,7 @@ if (-not (Test-Path $SitePath)) {
 $backupDir = $ApiFilesPath 
 Write-Host "Searching for backups in: $backupDir"
 
-$backupFiles = Get-ChildItem -Path $backupDir -Filter "\backup_*.zip" -ErrorAction SilentlyContinue
+$backupFiles = Get-ChildItem -Path $backupDir -Filter "backup_*.zip" -ErrorAction SilentlyContinue
 
 if ($backupFiles -eq $null -or $backupFiles.Count -eq 0) {
     Write-Host "ERROR: No backup files found matching pattern: backup_*.zip"
