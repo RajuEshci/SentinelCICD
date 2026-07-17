@@ -20,7 +20,34 @@ namespace SentinelApp.Persistence.Repositories
 		{
 			_dbContext = dbContext;
 		}
-		public async Task<User?> GetByEmailAsync(string email, int Id = 0)
+        public async Task<bool> DBHealthy()
+        {
+            try
+            {
+                using var connection = _dbContext.CreateConnection();
+
+                if (connection is DbConnection dbConnection)
+                {
+                    await dbConnection.OpenAsync();
+                }
+                else
+                {
+                    connection.Open();
+                }
+
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT 1";
+                command.ExecuteScalar();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+				throw new ServiceResponseException(HttpStatusCode.ServiceUnavailable, ex.Message);
+                return false;
+            }
+        }
+        public async Task<User?> GetByEmailAsync(string email, int Id = 0)
 		{
 			using var _connection = _dbContext.CreateConnection();
 

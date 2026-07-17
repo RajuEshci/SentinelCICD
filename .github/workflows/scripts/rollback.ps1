@@ -9,7 +9,10 @@ param (
     [string]$DbName,
 
     # Must match the DbBackupDir used in backup.ps1 (same UNC/local path rules apply).
-    [string]$DbBackupDir
+    [string]$DbBackupDir,
+
+    # Must match the ApiFilesPath used in backup.ps1 (the destination folder to restore into).
+    [string]$ApiFilesPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -128,6 +131,38 @@ try {
 Write-Host "=== File Rollback COMPLETED Successfully ==="
 Write-Host "Site restored from: $($latestBackup.Name)"
 Write-Host "Restored to: $SitePath"
+
+# =========================================================================
+# API files restore (separate folder outside SitePath)
+# =========================================================================
+if ($ApiFilesPath) {
+    Write-Host "=== Starting API Files Rollback ==="
+
+    $apiFilesBackups = Get-ChildItem -Path $backupDir -Filter "backup_apifiles_*.zip" -ErrorAction SilentlyContinue
+
+    if ($apiFilesBackups -eq $null -or $apiFilesBackups.Count -eq 0) {
+        throw "No API files backup found matching pattern: backup_apifiles_*.zip in $backupDir"
+    }
+
+    $latestApiFilesBackup = $apiFilesBackups | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    Write-Host "Latest API files backup selected: $($latestApiFilesBackup.Name)"
+
+    if (-not (Test-Path $ApiFilesPath)) {
+        Write-Host "ApiFilesPath does not exist, creating: $ApiFilesPath"
+        New-Item -ItemType Directory -Path $ApiFilesPath -Force | Out-Null
+    } else {
+        Write-Host "Clearing API files directory: $ApiFilesPath"
+        Get-ChildItem -Path $ApiFilesPath -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Host "Extracting API files backup..."
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($latestApiFilesBackup.FullName, $ApiFilesPath)
+
+    Write-Host "API files restore SUCCESS: restored from $($latestApiFilesBackup.Name) to $ApiFilesPath"
+} else {
+    Write-Host "ApiFilesPath not provided, skipping API files restore."
+}
 
 # =========================================================================
 # Database restore (SQL Server, native RESTORE DATABASE via sqlcmd)

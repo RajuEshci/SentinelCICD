@@ -11,6 +11,10 @@ param (
     [Parameter(Mandatory = $true)]
     [string]$DbName,
 
+    # Extra folder outside SitePath that should also be backed up (e.g. shared
+    # API files/config not part of the IIS site content).
+    [string]$ApiFilesPath,
+
     # NOTE: This path is used by the SQL Server *service account*, not by this
     # script/runner. If SQL Server runs on a different machine than IIS/the
     # runner, this must be a UNC path (e.g. \\fileserver\sql-backups) that the
@@ -58,6 +62,37 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 Remove-Item $tempCopy -Recurse -Force
 
 Write-Host "Backup SUCCESS: $backupZip"
+
+# =========================================================================
+# API files backup (separate folder outside SitePath)
+# =========================================================================
+if ($ApiFilesPath) {
+    if (-not (Test-Path $ApiFilesPath)) {
+        throw "ApiFilesPath not found: $ApiFilesPath"
+    }
+
+    Write-Host "Backing up API files folder: $ApiFilesPath"
+
+    $apiFilesBackupZip = "$SitePath\..\backup_apifiles_$timestamp.zip"
+    $apiFilesTempCopy   = "$SitePath\..\_backup_apifiles_temp"
+
+    if (Test-Path $apiFilesTempCopy) {
+        Remove-Item $apiFilesTempCopy -Recurse -Force
+    }
+
+    Write-Host "Creating temp copy of API files..."
+    robocopy $ApiFilesPath $apiFilesTempCopy /E /R:1 /W:1 /XF *.log /NFL /NDL | Out-Null
+
+    Write-Host "Creating API files zip archive..."
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($apiFilesTempCopy, $apiFilesBackupZip)
+
+    Remove-Item $apiFilesTempCopy -Recurse -Force
+
+    Write-Host "API files backup SUCCESS: $apiFilesBackupZip"
+} else {
+    Write-Host "ApiFilesPath not provided, skipping API files backup."
+}
 
 # =========================================================================
 # Database backup (SQL Server, native BACKUP DATABASE via sqlcmd)

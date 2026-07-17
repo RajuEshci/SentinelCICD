@@ -12,6 +12,7 @@ namespace SentinelApp.Application.Interfaces
 {
     public interface IAuthService
     {
+        Task<ServiceResponse<bool?>> DBHealthy();
         Task<ServiceResponse<bool?>> CreateUser(RegisterDto dto);
         Task<ServiceResponse<bool?>> UpdateUser(UpdateUserDto dto);
         Task<ServiceResponse<UserDto>> GetByUserId(int Id);

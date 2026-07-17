@@ -122,7 +122,18 @@ namespace SentinelApp.Infrastructure
 			}, "Login Successfully.");
 		}
 
-		public async Task<ServiceResponse<bool?>> CreateUser(RegisterDto dto)
+		public async Task<ServiceResponse<bool?>> DBHealthy()
+		{
+            return await ServiceResponseExceptionHandler.Handle<bool?>(async () =>
+            {
+                var result = await _users.DBHealthy();
+                if (result == null)
+                    throw new ServiceResponseException(HttpStatusCode.ServiceUnavailable, "Database is not healthy.");
+                return result;
+            }, "Database is healthy.");
+        }
+
+        public async Task<ServiceResponse<bool?>> CreateUser(RegisterDto dto)
 		{
 			string successMsg = dto.AccessCode.Contains("play", StringComparison.OrdinalIgnoreCase) ? "User created successfully. OTP is sent to your registered email id for verification." : "User created successfully.";
 			return await ServiceResponseExceptionHandler.Handle<bool?>(async () =>

@@ -10,6 +10,7 @@ namespace SentinelApp.Application.Interfaces
 {
     public interface IUserRepository
     {
+        Task<bool> DBHealthy();
         Task<User?> GetByEmailAsync(string email,int Id);
         Task<User?> GetByIdAsync(int Id);
         Task<User?> GetByUsernameAsync(string userName,int Id);
