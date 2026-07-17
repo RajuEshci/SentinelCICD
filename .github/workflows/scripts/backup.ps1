@@ -121,24 +121,35 @@ if (-not (Test-Path $DbBackupDir)) {
 # paired up later if needed.
 $dbBackupFile = Join-Path $DbBackupDir "${DbName}_$timestamp.bak"
 
-# Check SQL Server edition to determine if compression is supported
-Write-Host "Checking SQL Server edition..."
-$editionQuery = "SELECT SERVERPROPERTY('Edition') as Edition"
+# Build the sqlcmd command with proper flags
+# -C = Trust server certificate (for self-signed certs)
+# -M = Multiple active result sets (optional)
+$sqlcmdFlags = "-C"
 
-# Build the sqlcmd command based on authentication method
 if ($DbUser -and $DbPassword) {
     # Use SQL Authentication
     Write-Host "Using SQL Server Authentication"
     $escapedPassword = $DbPassword -replace "'", "''"
-    $sqlcmdAuth = "-U $DbUser -P $escapedPassword -C"
+    $sqlcmdAuth = "-U $DbUser -P $escapedPassword"
 } else {
     # Use Windows Authentication
     Write-Host "Using Windows Authentication"
     $sqlcmdAuth = "-E"
 }
 
-# Check edition
-$edition = sqlcmd -S $DbServer $sqlcmdAuth -Q "$editionQuery" -W -h-1 2>$null | Select-String -Pattern "Express" -Quiet
+# Check SQL Server edition to determine if compression is supported
+Write-Host "Checking SQL Server edition..."
+$editionQuery = "SELECT SERVERPROPERTY('Edition') as Edition"
+
+# Execute edition check with proper flags
+$editionResult = sqlcmd -S $DbServer $sqlcmdAuth $sqlcmdFlags -Q "$editionQuery" -W -h-1 2>$null
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Warning: Could not determine SQL Server edition. Assuming Standard/Enterprise."
+    $edition = $false
+} else {
+    $edition = $editionResult | Select-String -Pattern "Express" -Quiet
+}
 
 if ($edition) {
     Write-Host "SQL Server Express Edition detected - compression not supported"
@@ -148,9 +159,9 @@ if ($edition) {
     $sqlQuery = "BACKUP DATABASE [$DbName] TO DISK = N'$dbBackupFile' WITH INIT, COMPRESSION, STATS = 10;"
 }
 
-# Execute the backup
-Write-Host "Running: sqlcmd -S $DbServer $sqlcmdAuth -Q `"$sqlQuery`""
-$sqlcmdOutput = sqlcmd -S $DbServer $sqlcmdAuth -Q "$sqlQuery" 2>&1
+# Execute the backup with -C flag to trust certificate
+Write-Host "Running: sqlcmd -S $DbServer $sqlcmdAuth $sqlcmdFlags -Q `"$sqlQuery`""
+$sqlcmdOutput = sqlcmd -S $DbServer $sqlcmdAuth $sqlcmdFlags -Q "$sqlQuery" 2>&1
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "SQLCMD Error Output:"
@@ -163,5 +174,3 @@ if (-not (Test-Path $dbBackupFile)) {
 }
 
 Write-Host "Database backup SUCCESS: $dbBackupFile"
-# Starting the app pool back up is intentionally left to the Deploy step,
-# which starts it after publishing new files (matches existing pipeline flow).
