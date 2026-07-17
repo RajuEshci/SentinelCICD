@@ -1,8 +1,8 @@
-name: Develop CI/CD
+name: Development CI/CD
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ development ]
 
 jobs:
   build-deploy:
