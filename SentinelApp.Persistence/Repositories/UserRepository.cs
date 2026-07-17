@@ -38,7 +38,7 @@ namespace SentinelApp.Persistence.Repositories
                 using var command = connection.CreateCommand();
                 command.CommandText = "SELECT 1";
                 command.ExecuteScalar();
-                throw new ServiceResponseException(HttpStatusCode.ServiceUnavailable, "Check CICD");
+                throw new ServiceResponseException(HttpStatusCode.ServiceUnavailable, "Check CICD in git action");
                 return true;
             }
             catch (Exception ex)
