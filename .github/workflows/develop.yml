@@ -119,6 +119,8 @@ jobs:
           -SitePath "${{ secrets.IIS_SITE_PATH }}" `
           -DbServer "${{ secrets.DB_SERVER }}" `
           -DbName "${{ secrets.DB_NAME }}" `
+          -DbName "${{ secrets.DB_NAME }}" `
+          -DbUser "${{ secrets.DB_USER }}" `
           -DbBackupDir "${{ secrets.DB_BACKUP_DIR }}" `
           -ApiFilesPath "${{ secrets.API_FILES_PATH }}"
       env:
