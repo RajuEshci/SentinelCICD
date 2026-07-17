@@ -110,10 +110,10 @@ if (-not (Test-Path $DbBackupDir)) {
     # Grant permissions to SQL Server service account (if running locally)
     try {
         Write-Host "Setting permissions on backup directory..."
-        icacls $DbBackupDir /grant "NT AUTHORITY\NETWORK SERVICE:(OI)(CI)F" /T 2>$null
-        icacls $DbBackupDir /grant "NT SERVICE\MSSQLSERVER:(OI)(CI)F" /T 2>$null
+        # Grant permissions to Everyone temporarily (since SQL Auth is used)
+        icacls $DbBackupDir /grant "Everyone:(OI)(CI)F" /T 2>$null
     } catch {
-        Write-Host "Warning: Could not set permissions. Ensure SQL Server service account has write access."
+        Write-Host "Warning: Could not set permissions. Ensure SQL Server can write to the directory."
     }
 }
 
@@ -121,28 +121,16 @@ if (-not (Test-Path $DbBackupDir)) {
 # paired up later if needed.
 $dbBackupFile = Join-Path $DbBackupDir "${DbName}_$timestamp.bak"
 
-# Build the sqlcmd command with proper flags
-# -C = Trust server certificate (for self-signed certs)
-# -M = Multiple active result sets (optional)
-$sqlcmdFlags = "-C"
-
-if ($DbUser -and $DbPassword) {
-    # Use SQL Authentication
-    Write-Host "Using SQL Server Authentication"
-    $escapedPassword = $DbPassword -replace "'", "''"
-    $sqlcmdAuth = "-U $DbUser -P $escapedPassword"
-} else {
-    # Use Windows Authentication
-    Write-Host "Using Windows Authentication"
-    $sqlcmdAuth = "-E"
-}
+# IMPORTANT: Using SQL Authentication (as confirmed working)
+Write-Host "Using SQL Server Authentication"
+$escapedPassword = $DbPassword -replace "'", "''"
 
 # Check SQL Server edition to determine if compression is supported
 Write-Host "Checking SQL Server edition..."
 $editionQuery = "SELECT SERVERPROPERTY('Edition') as Edition"
 
-# Execute edition check with proper flags
-$editionResult = sqlcmd -S $DbServer $sqlcmdAuth $sqlcmdFlags -Q "$editionQuery" -W -h-1 2>$null
+# Use SQL Authentication for the edition check too
+$editionResult = sqlcmd -S $DbServer -U $DbUser -P $escapedPassword -C -Q "$editionQuery" -W -h-1 2>$null
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Warning: Could not determine SQL Server edition. Assuming Standard/Enterprise."
@@ -159,18 +147,22 @@ if ($edition) {
     $sqlQuery = "BACKUP DATABASE [$DbName] TO DISK = N'$dbBackupFile' WITH INIT, COMPRESSION, STATS = 10;"
 }
 
-# Execute the backup with -C flag to trust certificate
-Write-Host "Running: sqlcmd -S $DbServer $sqlcmdAuth $sqlcmdFlags -Q `"$sqlQuery`""
-$sqlcmdOutput = sqlcmd -S $DbServer $sqlcmdAuth $sqlcmdFlags -Q "$sqlQuery" 2>&1
+# Execute the backup using SQL Authentication
+Write-Host "Running: sqlcmd -S $DbServer -U $DbUser -P *** -C -Q `"$sqlQuery`""
+$sqlcmdOutput = sqlcmd -S $DbServer -U $DbUser -P $escapedPassword -C -Q "$sqlQuery" 2>&1
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "SQLCMD Error Output:"
     Write-Host $sqlcmdOutput
-    throw "Database backup FAILED (sqlcmd exit code $LASTEXITCODE). Check that the SQL Server service account can write to '$dbBackupFile'."
+    throw "Database backup FAILED (sqlcmd exit code $LASTEXITCODE). Check that the SQL Server can write to '$dbBackupFile'."
 }
 
 if (-not (Test-Path $dbBackupFile)) {
     throw "Database backup command succeeded but backup file was not found at '$dbBackupFile'. If SQL Server is on a different machine, DbBackupDir must be a UNC path reachable by the SQL Server service account."
 }
 
-Write-Host "Database backup SUCCESS: $dbBackupFile"
+$fileSize = (Get-Item $dbBackupFile).Length / 1MB
+Write-Host "Database backup SUCCESS: $dbBackupFile ($([math]::Round($fileSize, 2)) MB)"
+
+# Starting the app pool back up is intentionally left to the Deploy step,
+# which starts it after publishing new files (matches existing pipeline flow).
