@@ -112,7 +112,7 @@ if (-not (Test-Path $DbBackupDir)) {
 # paired up later if needed.
 $dbBackupFile = Join-Path $DbBackupDir "${DbName}_$timestamp.bak"
 
-$sqlQuery = "BACKUP DATABASE [$DbName] TO DISK = N'$dbBackupFile' WITH INIT, COMPRESSION, STATS = 10;"
+$sqlQuery = "BACKUP DATABASE [$DbName] TO DISK = N'$dbBackupFile' WITH INIT, STATS = 10;"
 
 Write-Host "Running: sqlcmd -S $DbServer -E -Q ""$sqlQuery"""
 $escapedPassword = $DbPassword -replace "'", "''"
