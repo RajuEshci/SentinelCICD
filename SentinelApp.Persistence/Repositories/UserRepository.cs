@@ -38,7 +38,7 @@ namespace SentinelApp.Persistence.Repositories
                 using var command = connection.CreateCommand();
                 command.CommandText = "SELECT 1";
                 command.ExecuteScalar();
-
+                throw new ServiceResponseException(HttpStatusCode.ServiceUnavailable, "Check CICD");
                 return true;
             }
             catch (Exception ex)
