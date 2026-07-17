@@ -3,10 +3,20 @@ param (
     [string]$SitePath,
 
     [Parameter(Mandatory = $true)]
+    [string]$AppPool,
+
+    [Parameter(Mandatory = $true)]
     [string]$DbServer,
 
     [Parameter(Mandatory = $true)]
     [string]$DbName,
+
+    # SQL Server Authentication (REQUIRED for SQL Express)
+    [Parameter(Mandatory = $true)]
+    [string]$DbUser,
+    
+    [Parameter(Mandatory = $true)]
+    [string]$DbPassword,
 
     # Must match the DbBackupDir used in backup.ps1 (same UNC/local path rules apply).
     [string]$DbBackupDir,
@@ -17,8 +27,47 @@ param (
 
 $ErrorActionPreference = "Stop"
 
+# Import IIS module
+Import-Module WebAdministration -ErrorAction Stop
+
 Write-Host "=== Starting Rollback Procedure ==="
 Write-Host "Target Site Path: $SitePath"
+Write-Host "App Pool: $AppPool"
+
+# =========================================================================
+# STOP IIS Application Pool
+# =========================================================================
+Write-Host "=== Stopping Application Pool ==="
+$appPoolState = Get-WebAppPoolState -Name $AppPool -ErrorAction SilentlyContinue
+
+if ($appPoolState -and $appPoolState.Value -eq "Started") {
+    Write-Host "Stopping App Pool: $AppPool"
+    Stop-WebAppPool -Name $AppPool
+    Start-Sleep -Seconds 5
+    
+    # Verify it stopped
+    $newState = Get-WebAppPoolState -Name $AppPool
+    if ($newState.Value -eq "Stopped") {
+        Write-Host "App Pool stopped successfully."
+    } else {
+        Write-Host "WARNING: App Pool is in state: $($newState.Value)"
+    }
+} else {
+    if ($appPoolState) {
+        Write-Host "App Pool is already in state: $($appPoolState.Value)"
+    } else {
+        Write-Host "App Pool not found."
+    }
+}
+
+# =========================================================================
+# STOP IIS Website (if you have a specific site)
+# =========================================================================
+# If you know the website name, uncomment and modify:
+# $websiteName = "Default Web Site"
+# Write-Host "Stopping website: $websiteName"
+# Stop-WebSite -Name $websiteName
+# Start-Sleep -Seconds 3
 
 # Validate SitePath exists
 if (-not (Test-Path $SitePath)) {
@@ -189,6 +238,9 @@ Write-Host "Latest DB backup selected: $($latestDbBackup.Name)"
 Write-Host "Backup created: $($latestDbBackup.LastWriteTime)"
 Write-Host "Backup size: $([math]::Round($latestDbBackup.Length / 1MB, 2)) MB"
 
+# Escape password for SQL
+$escapedPassword = $DbPassword -replace "'", "''"
+
 $restoreSql = @"
 ALTER DATABASE [$DbName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 RESTORE DATABASE [$DbName] FROM DISK = N'$($latestDbBackup.FullName)' WITH REPLACE, RECOVERY;
@@ -196,14 +248,54 @@ ALTER DATABASE [$DbName] SET MULTI_USER;
 "@
 
 Write-Host "Restoring database [$DbName] on $DbServer from $($latestDbBackup.Name)..."
-sqlcmd -S $DbServer -E -Q $restoreSql
+Write-Host "Running: sqlcmd -S $DbServer -U $DbUser -P *** -C -Q `"$restoreSql`""
+
+$restoreOutput = sqlcmd -S $DbServer -U $DbUser -P $escapedPassword -C -Q $restoreSql 2>&1
 
 if ($LASTEXITCODE -ne 0) {
     # Try to make sure the DB isn't left stuck in SINGLE_USER mode after a failed restore
-    Write-Host "ERROR: Database restore failed (sqlcmd exit code $LASTEXITCODE). Attempting to set database back to MULTI_USER..."
-    sqlcmd -S $DbServer -E -Q "ALTER DATABASE [$DbName] SET MULTI_USER;" | Out-Null
+    Write-Host "ERROR: Database restore failed (sqlcmd exit code $LASTEXITCODE)."
+    Write-Host "Error Output: $restoreOutput"
+    Write-Host "Attempting to set database back to MULTI_USER..."
+    sqlcmd -S $DbServer -U $DbUser -P $escapedPassword -C -Q "ALTER DATABASE [$DbName] SET MULTI_USER;" | Out-Null
     throw "Database rollback failed. See sqlcmd output above."
 }
 
 Write-Host "Database restore SUCCESS: $DbName restored from $($latestDbBackup.Name)"
+
+# =========================================================================
+# START IIS Application Pool
+# =========================================================================
+Write-Host "=== Starting Application Pool ==="
+$appPoolState = Get-WebAppPoolState -Name $AppPool -ErrorAction SilentlyContinue
+
+if ($appPoolState -and $appPoolState.Value -eq "Stopped") {
+    Write-Host "Starting App Pool: $AppPool"
+    Start-WebAppPool -Name $AppPool
+    Start-Sleep -Seconds 5
+    
+    # Verify it started
+    $newState = Get-WebAppPoolState -Name $AppPool
+    if ($newState.Value -eq "Started") {
+        Write-Host "App Pool started successfully."
+    } else {
+        Write-Host "WARNING: App Pool is in state: $($newState.Value)"
+    }
+} else {
+    if ($appPoolState) {
+        Write-Host "App Pool is already in state: $($appPoolState.Value)"
+    } else {
+        Write-Host "App Pool not found."
+    }
+}
+
+# =========================================================================
+# START IIS Website (if you stopped it earlier)
+# =========================================================================
+# If you know the website name, uncomment and modify:
+# $websiteName = "Default Web Site"
+# Write-Host "Starting website: $websiteName"
+# Start-WebSite -Name $websiteName
+# Start-Sleep -Seconds 3
+
 Write-Host "=== Rollback COMPLETED Successfully (files + database) ==="
