@@ -79,8 +79,8 @@ if ($ApiFilesPath) {
 
     Write-Host "Backing up API files folder: $ApiFilesPath"
 
-    $apiFilesBackupZip = "$ApiFilesPath\SentinelAPI_backup_apifiles_$timestamp.zip"
-    $apiFilesTempCopy   = "$SitePath\..\SentinelAPI_backup_apifiles_temp"
+    $apiFilesBackupZip = "$SitePath\..\backup_apifiles_$timestamp.zip"
+    $apiFilesTempCopy   = "$SitePath\..\_backup_apifiles_temp"
 
     if (Test-Path $apiFilesTempCopy) {
         Remove-Item $apiFilesTempCopy -Recurse -Force
