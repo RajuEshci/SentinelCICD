@@ -51,8 +51,8 @@ if ($appPoolState -and $appPoolState.Value -eq "Started") {
 }
 
 $timestamp = Get-Date -Format "yyyyMMddHHmmss"
-$backupZip = "$SitePath\..\backup_$timestamp.zip"
-$tempCopy  = "$SitePath\..\_backup_temp"
+$backupZip = "$ApiFilesPath\backup_$timestamp.zip"
+$tempCopy  = "$ApiFilesPath\_backup_temp"
 
 if (Test-Path $tempCopy) {
     Remove-Item $tempCopy -Recurse -Force
@@ -69,36 +69,36 @@ Remove-Item $tempCopy -Recurse -Force
 
 Write-Host "Backup SUCCESS: $backupZip"
 
-# =========================================================================
-# API files backup (separate folder outside SitePath)
-# =========================================================================
-if ($ApiFilesPath) {
-    if (-not (Test-Path $ApiFilesPath)) {
-        throw "ApiFilesPath not found: $ApiFilesPath"
-    }
+# # =========================================================================
+# # API files backup (separate folder outside SitePath)
+# # =========================================================================
+# if ($ApiFilesPath) {
+#     if (-not (Test-Path $ApiFilesPath)) {
+#         throw "ApiFilesPath not found: $ApiFilesPath"
+#     }
 
-    Write-Host "Backing up API files folder: $ApiFilesPath"
+#     Write-Host "Backing up API files folder: $ApiFilesPath"
 
-    $apiFilesBackupZip = "$SitePath\..\backup_apifiles_$timestamp.zip"
-    $apiFilesTempCopy   = "$SitePath\..\_backup_apifiles_temp"
+#     $apiFilesBackupZip = "$SitePath\..\backup_apifiles_$timestamp.zip"
+#     $apiFilesTempCopy   = "$SitePath\..\_backup_apifiles_temp"
 
-    if (Test-Path $apiFilesTempCopy) {
-        Remove-Item $apiFilesTempCopy -Recurse -Force
-    }
+#     if (Test-Path $apiFilesTempCopy) {
+#         Remove-Item $apiFilesTempCopy -Recurse -Force
+#     }
 
-    Write-Host "Creating temp copy of API files..."
-    robocopy $ApiFilesPath $apiFilesTempCopy /E /R:1 /W:1 /XF *.log /NFL /NDL | Out-Null
+#     Write-Host "Creating temp copy of API files..."
+#     robocopy $ApiFilesPath $apiFilesTempCopy /E /R:1 /W:1 /XF *.log /NFL /NDL | Out-Null
 
-    Write-Host "Creating API files zip archive..."
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::CreateFromDirectory($apiFilesTempCopy, $apiFilesBackupZip)
+#     Write-Host "Creating API files zip archive..."
+#     Add-Type -AssemblyName System.IO.Compression.FileSystem
+#     [System.IO.Compression.ZipFile]::CreateFromDirectory($apiFilesTempCopy, $apiFilesBackupZip)
 
-    Remove-Item $apiFilesTempCopy -Recurse -Force
+#     Remove-Item $apiFilesTempCopy -Recurse -Force
 
-    Write-Host "API files backup SUCCESS: $apiFilesBackupZip"
-} else {
-    Write-Host "ApiFilesPath not provided, skipping API files backup."
-}
+#     Write-Host "API files backup SUCCESS: $apiFilesBackupZip"
+# } else {
+#     Write-Host "ApiFilesPath not provided, skipping API files backup."
+# }
 
 # =========================================================================
 # Database backup (SQL Server, native BACKUP DATABASE via sqlcmd)
