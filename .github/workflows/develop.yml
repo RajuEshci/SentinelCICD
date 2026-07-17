@@ -117,11 +117,12 @@ jobs:
         Write-Host "Pipeline failed at stage: $env:FAILED_STAGE"
         powershell .github/workflows/scripts/rollback.ps1 `
           -SitePath "${{ secrets.IIS_SITE_PATH }}" `
+          -AppPool "${{ secrets.APP_POOL_NAME }}" `
           -DbServer "${{ secrets.DB_SERVER }}" `
           -DbName "${{ secrets.DB_NAME }}" `
           -DbName "${{ secrets.DB_NAME }}" `
           -DbUser "${{ secrets.DB_USER }}" `
-          -DbBackupDir "${{ secrets.DB_BACKUP_DIR }}" `
           -ApiFilesPath "${{ secrets.API_FILES_PATH }}"
+          -DbBackupDir "${{ secrets.DB_BACKUP_DIR }}" `
       env:
         FAILED_STAGE: "Deployment"

@@ -18,11 +18,11 @@ param (
     [Parameter(Mandatory = $true)]
     [string]$DbPassword,
 
-    # Must match the DbBackupDir used in backup.ps1 (same UNC/local path rules apply).
-    [string]$DbBackupDir,
-
     # Must match the ApiFilesPath used in backup.ps1 (the destination folder to restore into).
     [string]$ApiFilesPath
+
+    # Must match the DbBackupDir used in backup.ps1 (same UNC/local path rules apply).
+    [string]$DbBackupDir,
 )
 
 $ErrorActionPreference = "Stop"
