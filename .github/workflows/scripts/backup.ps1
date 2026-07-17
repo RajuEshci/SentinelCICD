@@ -106,19 +106,55 @@ Write-Host "Starting database backup for [$DbName] on $DbServer..."
 if (-not (Test-Path $DbBackupDir)) {
     Write-Host "Creating DB backup directory: $DbBackupDir"
     New-Item -ItemType Directory -Path $DbBackupDir -Force | Out-Null
+    
+    # Grant permissions to SQL Server service account (if running locally)
+    try {
+        Write-Host "Setting permissions on backup directory..."
+        icacls $DbBackupDir /grant "NT AUTHORITY\NETWORK SERVICE:(OI)(CI)F" /T 2>$null
+        icacls $DbBackupDir /grant "NT SERVICE\MSSQLSERVER:(OI)(CI)F" /T 2>$null
+    } catch {
+        Write-Host "Warning: Could not set permissions. Ensure SQL Server service account has write access."
+    }
 }
 
 # Use the same timestamp as the file backup so file + DB backups can be
 # paired up later if needed.
 $dbBackupFile = Join-Path $DbBackupDir "${DbName}_$timestamp.bak"
 
-$sqlQuery = "BACKUP DATABASE [$DbName] TO DISK = N'$dbBackupFile' WITH INIT, STATS = 10;"
+# Check SQL Server edition to determine if compression is supported
+Write-Host "Checking SQL Server edition..."
+$editionQuery = "SELECT SERVERPROPERTY('Edition') as Edition"
 
-Write-Host "Running: sqlcmd -S $DbServer -E -Q ""$sqlQuery"""
-$escapedPassword = $DbPassword -replace "'", "''"
-sqlcmd -S $DbServer -U $DbUser -P $escapedPassword -C -Q "$sqlQuery"
+# Build the sqlcmd command based on authentication method
+if ($DbUser -and $DbPassword) {
+    # Use SQL Authentication
+    Write-Host "Using SQL Server Authentication"
+    $escapedPassword = $DbPassword -replace "'", "''"
+    $sqlcmdAuth = "-U $DbUser -P $escapedPassword -C"
+} else {
+    # Use Windows Authentication
+    Write-Host "Using Windows Authentication"
+    $sqlcmdAuth = "-E"
+}
+
+# Check edition
+$edition = sqlcmd -S $DbServer $sqlcmdAuth -Q "$editionQuery" -W -h-1 2>$null | Select-String -Pattern "Express" -Quiet
+
+if ($edition) {
+    Write-Host "SQL Server Express Edition detected - compression not supported"
+    $sqlQuery = "BACKUP DATABASE [$DbName] TO DISK = N'$dbBackupFile' WITH INIT, STATS = 10;"
+} else {
+    Write-Host "SQL Server Standard/Enterprise Edition - compression supported"
+    $sqlQuery = "BACKUP DATABASE [$DbName] TO DISK = N'$dbBackupFile' WITH INIT, COMPRESSION, STATS = 10;"
+}
+
+# Execute the backup
+Write-Host "Running: sqlcmd -S $DbServer $sqlcmdAuth -Q `"$sqlQuery`""
+$sqlcmdOutput = sqlcmd -S $DbServer $sqlcmdAuth -Q "$sqlQuery" 2>&1
 
 if ($LASTEXITCODE -ne 0) {
+    Write-Host "SQLCMD Error Output:"
+    Write-Host $sqlcmdOutput
     throw "Database backup FAILED (sqlcmd exit code $LASTEXITCODE). Check that the SQL Server service account can write to '$dbBackupFile'."
 }
 
@@ -127,6 +163,5 @@ if (-not (Test-Path $dbBackupFile)) {
 }
 
 Write-Host "Database backup SUCCESS: $dbBackupFile"
-
 # Starting the app pool back up is intentionally left to the Deploy step,
 # which starts it after publishing new files (matches existing pipeline flow).
