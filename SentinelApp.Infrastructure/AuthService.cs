@@ -130,7 +130,7 @@ namespace SentinelApp.Infrastructure
                 if (result == null)
                     throw new ServiceResponseException(HttpStatusCode.ServiceUnavailable, "Database is not healthy.");
                 return result;
-            }, "Database is healthy.");
+            }, "Database is healthy. ");
         }
 
         public async Task<ServiceResponse<bool?>> CreateUser(RegisterDto dto)
