@@ -34,40 +34,40 @@ $ErrorActionPreference = "Stop"
 Import-Module WebAdministration
 
 # Check if App Pool exists and is running before stopping
-Write-Host "Checking App Pool: $AppPool"
-$appPoolState = Get-WebAppPoolState -Name $AppPool -ErrorAction SilentlyContinue
+# Write-Host "Checking App Pool: $AppPool"
+# $appPoolState = Get-WebAppPoolState -Name $AppPool -ErrorAction SilentlyContinue
 
-if ($appPoolState -and $appPoolState.Value -eq "Started") {
-    Write-Host "Stopping App Pool: $AppPool"
-    Stop-WebAppPool -Name $AppPool
-    Start-Sleep -Seconds 5
-    Write-Host "App Pool stopped successfully."
-} else {
-    if ($appPoolState) {
-        Write-Host "App Pool is already in state: $($appPoolState.Value)"
-    } else {
-        Write-Host "App Pool not found or already stopped."
-    }
-}
+# if ($appPoolState -and $appPoolState.Value -eq "Started") {
+#     Write-Host "Stopping App Pool: $AppPool"
+#     Stop-WebAppPool -Name $AppPool
+#     Start-Sleep -Seconds 5
+#     Write-Host "App Pool stopped successfully."
+# } else {
+#     if ($appPoolState) {
+#         Write-Host "App Pool is already in state: $($appPoolState.Value)"
+#     } else {
+#         Write-Host "App Pool not found or already stopped."
+#     }
+# }
 
-$timestamp = Get-Date -Format "yyyyMMddHHmmss"
-$backupZip = "$SitePath\..\backup_$timestamp.zip"
-$tempCopy  = "$SitePath\..\_backup_temp"
+# $timestamp = Get-Date -Format "yyyyMMddHHmmss"
+# $backupZip = "$ApiFilesPath\SentinelAPI_backup_$timestamp.zip"
+# $tempCopy  = "$SitePath\..\SentinelAPI_backup_temp"
 
-if (Test-Path $tempCopy) {
-    Remove-Item $tempCopy -Recurse -Force
-}
+# if (Test-Path $tempCopy) {
+#     Remove-Item $tempCopy -Recurse -Force
+# }
 
-Write-Host "Creating temp backup copy..."
-robocopy $SitePath $tempCopy /E /R:1 /W:1 /XF *.log /NFL /NDL | Out-Null
+# Write-Host "Creating temp backup copy..."
+# robocopy $SitePath $tempCopy /E /R:1 /W:1 /XF *.log /NFL /NDL | Out-Null
 
-Write-Host "Creating zip archive..."
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::CreateFromDirectory($tempCopy, $backupZip)
+# Write-Host "Creating zip archive..."
+# Add-Type -AssemblyName System.IO.Compression.FileSystem
+# [System.IO.Compression.ZipFile]::CreateFromDirectory($tempCopy, $backupZip)
 
-Remove-Item $tempCopy -Recurse -Force
+# Remove-Item $tempCopy -Recurse -Force
 
-Write-Host "Backup SUCCESS: $backupZip"
+# Write-Host "Backup SUCCESS: $backupZip"
 
 # =========================================================================
 # API files backup (separate folder outside SitePath)
@@ -79,8 +79,8 @@ if ($ApiFilesPath) {
 
     Write-Host "Backing up API files folder: $ApiFilesPath"
 
-    $apiFilesBackupZip = "$SitePath\..\backup_apifiles_$timestamp.zip"
-    $apiFilesTempCopy   = "$SitePath\..\_backup_apifiles_temp"
+    $apiFilesBackupZip = "$ApiFilesPath\SentinelAPI_backup_apifiles_$timestamp.zip"
+    $apiFilesTempCopy   = "$SitePath\..\SentinelAPI_backup_apifiles_temp"
 
     if (Test-Path $apiFilesTempCopy) {
         Remove-Item $apiFilesTempCopy -Recurse -Force
