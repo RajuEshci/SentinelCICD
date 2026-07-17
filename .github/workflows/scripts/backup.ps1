@@ -11,6 +11,12 @@ param (
     [Parameter(Mandatory = $true)]
     [string]$DbName,
 
+    [Parameter(Mandatory = $true)]
+    [string]$DbUser,
+
+    [Parameter(Mandatory = $true)]
+    [string]$DbPassword,
+
     # Extra folder outside SitePath that should also be backed up (e.g. shared
     # API files/config not part of the IIS site content).
     [string]$ApiFilesPath,
