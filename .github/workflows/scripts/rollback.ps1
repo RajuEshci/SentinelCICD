@@ -78,7 +78,7 @@ if (-not (Test-Path $SitePath)) {
 }
 
 # Find latest backup
-$backupDir = Split-Path $ApiFilesPath 
+$backupDir = $ApiFilesPath 
 Write-Host "Searching for backups in: $backupDir"
 
 $backupFiles = Get-ChildItem -Path $backupDir -Filter "\backup_*.zip" -ErrorAction SilentlyContinue
