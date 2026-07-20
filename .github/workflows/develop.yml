@@ -5,28 +5,59 @@ on:
     branches: [ development ]
 
 jobs:
-  build-deploy:
-    runs-on: self-hosted
+  # ==========================================================
+  # JOB 1 — Build on GitHub-hosted runner (cloud)
+  # ==========================================================
+  build:
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set Initial Stage
-      run: echo "FAILED_STAGE=START" >> $GITHUB_ENV
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'   # <-- set this to YOUR project's .NET version
 
     - name: Build
-      run: |
-        echo "FAILED_STAGE=BUILD" >> $GITHUB_ENV
-        dotnet build --configuration Release
+      run: dotnet build --configuration Release
 
     - name: Publish
-      run: |
-        echo "FAILED_STAGE=PUBLISH" >> $GITHUB_ENV
-        dotnet publish -c Release -o publish
+      run: dotnet publish -c Release -o publish
+
+    - name: Upload published output as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: publish
+        path: publish/
+        retention-days: 1
+
+  # ==========================================================
+  # JOB 2 — Deploy on self-hosted runner (your IIS server)
+  # ==========================================================
+  deploy:
+    needs: build
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v4   # needed so the .ps1 scripts are present on the server
+
+    - name: Set Initial Stage
+      run: echo "FAILED_STAGE=START" >> $env:GITHUB_ENV
+
+    - name: Download published artifact
+      run: echo "FAILED_STAGE=DOWNLOAD" >> $env:GITHUB_ENV
+      # (stage marker; actual download in next step)
+
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: publish
+        path: publish
 
     - name: Configure App Settings
       run: |
-        echo "FAILED_STAGE=CONFIGURE" >> $GITHUB_ENV
+        echo "FAILED_STAGE=CONFIGURE" >> $env:GITHUB_ENV
         powershell .github/workflows/scripts/set-appsettings.ps1 `
           -AppSettingsPath "publish\appsettings.json" `
           -DbServer "${{ secrets.DB_SERVER }}" `
@@ -47,7 +78,7 @@ jobs:
 
     - name: Backup IIS + Database
       run: |
-        echo "FAILED_STAGE=BACKUP" >> $GITHUB_ENV
+        echo "FAILED_STAGE=BACKUP" >> $env:GITHUB_ENV
         powershell .github/workflows/scripts/backup.ps1 `
           -SitePath "${{ secrets.IIS_SITE_PATH }}" `
           -AppPool "${{ secrets.APP_POOL_NAME }}" `
@@ -60,7 +91,7 @@ jobs:
 
     - name: Deploy
       run: |
-        echo "FAILED_STAGE=DEPLOY" >> $GITHUB_ENV
+        echo "FAILED_STAGE=DEPLOY" >> $env:GITHUB_ENV
         powershell .github/workflows/scripts/deploy.ps1 `
           -SitePath "${{ secrets.IIS_SITE_PATH }}" `
           -AppPool "${{ secrets.APP_POOL_NAME }}"
@@ -80,36 +111,25 @@ jobs:
     - name: Health Check
       run: |
         echo "FAILED_STAGE=HEALTH_CHECK" >> $env:GITHUB_ENV
-
         $healthUrl = "${{ secrets.HEALTH_URL }}"
-
         Write-Host "Health Check URL: $healthUrl"
-
         $maxAttempts = 5
         $attempt = 0
-
         while ($attempt -lt $maxAttempts) {
             $attempt++
             Write-Host "Attempt $attempt of $maxAttempts..."
-
             $statusCode = curl.exe -s -o nul -w "%{http_code}" $healthUrl
-
             Write-Host "Status Code: $statusCode"
-
             if ($statusCode -eq "200") {
                 Write-Host "Health Check PASSED"
                 exit 0
             }
-
             if ($attempt -lt $maxAttempts) {
                 Start-Sleep -Seconds 2
             }
         }
-
         Write-Host "Health Check FAILED after $maxAttempts attempts"
         exit 1
-
-
 
     - name: Rollback on Failure
       if: failure()
@@ -124,5 +144,3 @@ jobs:
           -DbPassword "${{ secrets.DB_PASSWORD }}" `
           -DbBackupDir "${{ secrets.DB_BACKUP_DIR }}" `
           -ApiFilesPath "${{ secrets.API_FILES_PATH }}"
-      env:
-        FAILED_STAGE: "Deployment"
