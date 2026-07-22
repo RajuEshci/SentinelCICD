@@ -27,7 +27,7 @@ param (
     [Parameter(Mandatory = $true)]
     [string]$EncryptionInitVector,
     [Parameter(Mandatory = $true)]
-    [string]$RequestAccessCodeMailId,
+    [string[]]$RequestAccessCodeMailId,
     [Parameter(Mandatory = $true)]
     [string]$ApiUrl
 )
@@ -56,7 +56,7 @@ $config.SMTP.UserName = $SmtpUsername
 $config.SMTP.Password = $SmtpPassword
 $config.EncryptionSettings.CryptKey = $EncryptionCryptKey
 $config.EncryptionSettings.InitVector = $EncryptionInitVector
-$config.RequestAccessCodeMailId = $RequestAccessCodeMailId
+$config.RequestAccessCodeMailId = ($RequestAccessCodeMailId -join ",")
 $config.ApiUrl = $ApiUrl
 
 # Depth 20 to make sure the nested Serilog/Cors sections round-trip fully.
