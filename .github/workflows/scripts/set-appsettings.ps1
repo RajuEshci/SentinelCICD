@@ -58,6 +58,7 @@ $config.EncryptionSettings.CryptKey = $EncryptionCryptKey
 $config.EncryptionSettings.InitVector = $EncryptionInitVector
 $config.RequestAccessCodeMailId = ($RequestAccessCodeMailId -join ",")
 $config.ApiUrl = $ApiUrl
+$config.EncryptionSettings.Enabled = $true
 
 # Depth 20 to make sure the nested Serilog/Cors sections round-trip fully.
 $config | ConvertTo-Json -Depth 20 | Set-Content -Path $AppSettingsPath -Encoding UTF8
