@@ -58,8 +58,8 @@ if (Test-Path $tempCopy) {
     Remove-Item $tempCopy -Recurse -Force
 }
 
-Write-Host "Creating temp backup copy..."
-robocopy $SitePath $tempCopy /E /R:1 /W:1 /XF *.log /NFL /NDL | Out-Null
+Write-Host "Creating temp backup copy (excluding config files)..."
+robocopy $SitePath $tempCopy /E /R:1 /W:1 /XF *.log appsettings.json web.config /NFL /NDL | Out-Null
 
 Write-Host "Creating zip archive..."
 Add-Type -AssemblyName System.IO.Compression.FileSystem

@@ -40,27 +40,32 @@ if (-not (Test-Path $AppSettingsPath)) {
 
 Write-Host "Injecting configuration into: $AppSettingsPath (by key path, values not logged)"
 
+Write-Host "Skipping appsettings.json injection - configuration will be managed manually"
+Write-Host "Configuration values are intentionally NOT injected here."
+Write-Host "appsettings.json and web.config will be preserved from the existing deployment."
+Write-Host "No changes are made to the configuration files."
+Write-Host ""
+Write-Host "Configuration injection skipped. Files preserved as-is."
 # This overwrites known JSON keys directly by path, whatever their current
 # value is (real local-dev default, blank, etc). The checked-in appsettings.json
 # needs no special placeholder syntax and can be run as-is by developers.
-$rawContent = Get-Content -Path $AppSettingsPath -Raw
-$config = $rawContent | ConvertFrom-Json
+# $rawContent = Get-Content -Path $AppSettingsPath -Raw
+# $config = $rawContent | ConvertFrom-Json
 
-$config.ConnectionStrings.DefaultConnection = "server=$DbServer;database=$DbName;user id=$DbUser;password=$DbPassword;Encrypt=True;TrustServerCertificate=True;"
-$config.Jwt.Key = $JwtKey
-$config.GraphEmail.TenantId = $GraphTenantId
-$config.GraphEmail.ClientId = $GraphClientId
-$config.GraphEmail.ClientSecret = $GraphClientSecret
-$config.GraphEmail.FromUser = $GraphFromUser
-$config.SMTP.UserName = $SmtpUsername
-$config.SMTP.Password = $SmtpPassword
-$config.EncryptionSettings.CryptKey = $EncryptionCryptKey
-$config.EncryptionSettings.InitVector = $EncryptionInitVector
-$config.RequestAccessCodeMailId = ($RequestAccessCodeMailId -join ",")
-$config.ApiUrl = $ApiUrl
-$config.EncryptionSettings.Enabled = $true
+# $config.ConnectionStrings.DefaultConnection = "server=$DbServer;database=$DbName;user id=$DbUser;password=$DbPassword;Encrypt=True;TrustServerCertificate=True;"
+# $config.Jwt.Key = $JwtKey
+# $config.GraphEmail.TenantId = $GraphTenantId
+# $config.GraphEmail.ClientId = $GraphClientId
+# $config.GraphEmail.ClientSecret = $GraphClientSecret
+# $config.GraphEmail.FromUser = $GraphFromUser
+# $config.SMTP.UserName = $SmtpUsername
+# $config.SMTP.Password = $SmtpPassword
+# $config.EncryptionSettings.CryptKey = $EncryptionCryptKey
+# $config.EncryptionSettings.InitVector = $EncryptionInitVector
+# $config.RequestAccessCodeMailId = $RequestAccessCodeMailId
+# $config.ApiUrl = $ApiUrl
 
-# Depth 20 to make sure the nested Serilog/Cors sections round-trip fully.
-$config | ConvertTo-Json -Depth 20 | Set-Content -Path $AppSettingsPath -Encoding UTF8
+# # Depth 20 to make sure the nested Serilog/Cors sections round-trip fully.
+# $config | ConvertTo-Json -Depth 20 | Set-Content -Path $AppSettingsPath -Encoding UTF8
 
-Write-Host "Configuration injected successfully."
+# Write-Host "Configuration injected successfully."

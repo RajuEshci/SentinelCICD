@@ -145,20 +145,47 @@ while ($cleaned -eq $false -and $retryCount -lt $maxRetries) {
     }
 }
 
-# Extract backup
-Write-Host "Extracting backup..."
+# Extract backup (preserving config files)
+Write-Host "Extracting backup (preserving config files)..."
+
 try {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($latestBackup.FullName, $SitePath)
-    Write-Host "Backup extracted successfully."
+    
+    # Extract all files except appsettings.json and web.config
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($latestBackup.FullName)
+    try {
+        $extractedCount = 0
+        foreach ($entry in $zip.Entries) {
+            $entryName = $entry.FullName
+            $fileName = Split-Path $entryName -Leaf
+            
+            # Skip config files
+            if ($fileName -eq "appsettings.json" -or $fileName -eq "web.config") {
+                Write-Host "Skipping: $entryName (preserved from existing deployment)"
+                continue
+            }
+            
+            $targetPath = Join-Path $SitePath $entryName
+            $targetDir = Split-Path $targetPath -Parent
+            
+            if (-not (Test-Path $targetDir)) {
+                New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+            }
+            
+            # Extract the file
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $targetPath, $true)
+            $extractedCount++
+        }
+        Write-Host "Extracted $extractedCount files (config files preserved)."
+    } finally {
+        $zip.Dispose()
+    }
 
     # Verify extraction
     $extractedFiles = Get-ChildItem $SitePath -Recurse -File -ErrorAction SilentlyContinue
     if ($extractedFiles -ne $null) {
         $extractedCount = $extractedFiles.Count
-        Write-Host "Extracted $extractedCount files."
-    } else {
-        Write-Host "No files found after extraction."
+        Write-Host "Total files in site after extraction: $extractedCount"
     }
 
 } catch {
@@ -181,6 +208,7 @@ try {
 Write-Host "=== File Rollback COMPLETED Successfully ==="
 Write-Host "Site restored from: $($latestBackup.Name)"
 Write-Host "Restored to: $SitePath"
+Write-Host "Configuration files (appsettings.json, web.config) preserved from current deployment."
 
 # # =========================================================================
 # # API files restore (separate folder outside SitePath)
