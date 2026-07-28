@@ -45,31 +45,26 @@ jobs:
     - name: Set Environment Variables
       shell: powershell
       run: |
-          switch ("${{ github.ref_name }}") {
-
+          switch ("${{ github.ref_name }}")
+          {
             "develop" {
-              echo "ENVIRONMENT=Development" >> $env:GITHUB_ENV
-              echo "SITE_NAME=GFT-DEV" >> $env:GITHUB_ENV
-              echo "APP_POOL=GFT-DEV" >> $env:GITHUB_ENV
-              echo "DEPLOY_PATH=D:\Sites\GFT\Dev" >> $env:GITHUB_ENV
-              echo "BACKUP_PATH=D:\Backups\GFT\Dev" >> $env:GITHUB_ENV
-              echo "SITE_URL=https://dev.geneticfamilytree.ai" >> $env:GITHUB_ENV
-              break
+              "ENVIRONMENT=Development" | Out-File -FilePath $env:GITHUB_ENV -Append
+              "SITE_NAME=GFT-DEV" | Out-File -FilePath $env:GITHUB_ENV -Append
+              "APP_POOL=GFT-DEV" | Out-File -FilePath $env:GITHUB_ENV -Append
+              "DEPLOY_PATH=D:\Sites\GFT\Dev" | Out-File -FilePath $env:GITHUB_ENV -Append
             }
-
+      
             "main" {
-              echo "ENVIRONMENT=Testing" >> $env:GITHUB_ENV
-              echo "SITE_NAME=GFT-TEST" >> $env:GITHUB_ENV
-              echo "APP_POOL=GFT-TEST" >> $env:GITHUB_ENV
-              echo "DEPLOY_PATH=D:\Sites\GFT\Test" >> $env:GITHUB_ENV
-              echo "BACKUP_PATH=D:\Backups\GFT\Test" >> $env:GITHUB_ENV
-              echo "SITE_URL=https://test.geneticfamilytree.ai" >> $env:GITHUB_ENV
-              break
+              "ENVIRONMENT=Production" | Out-File -FilePath $env:GITHUB_ENV -Append
+              "SITE_NAME=GFT-PROD" | Out-File -FilePath $env:GITHUB_ENV -Append
+              "APP_POOL=GFT-PROD" | Out-File -FilePath $env:GITHUB_ENV -Append
+              "DEPLOY_PATH=D:\Sites\GFT\Production" | Out-File -FilePath $env:GITHUB_ENV -Append
             }
-
+      
             default {
-              throw "Unknown branch: ${{ github.ref_name }}"
+              throw "Unsupported branch: ${{ github.ref_name }}"
             }
+          }
             
     - name: Set Initial Stage
       run: echo "FAILED_STAGE=START" >> $env:GITHUB_ENV
