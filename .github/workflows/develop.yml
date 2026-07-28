@@ -47,7 +47,7 @@ jobs:
       run: |
           switch ("${{ github.ref_name }}")
           {
-            "develop" {
+            "development" {
               "ENVIRONMENT=Development" | Out-File -FilePath $env:GITHUB_ENV -Append
               "SITE_NAME=GFT-DEV" | Out-File -FilePath $env:GITHUB_ENV -Append
               "APP_POOL=GFT-DEV" | Out-File -FilePath $env:GITHUB_ENV -Append
