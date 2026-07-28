@@ -2,7 +2,7 @@ name: Development CI/CD
 
 on:
   push:
-    branches: [ development ]
+    branches: [ development, main ]
 
 jobs:
   # ==========================================================
@@ -57,33 +57,13 @@ jobs:
               break
             }
 
-            "test" {
+            "main" {
               echo "ENVIRONMENT=Testing" >> $env:GITHUB_ENV
               echo "SITE_NAME=GFT-TEST" >> $env:GITHUB_ENV
               echo "APP_POOL=GFT-TEST" >> $env:GITHUB_ENV
               echo "DEPLOY_PATH=D:\Sites\GFT\Test" >> $env:GITHUB_ENV
               echo "BACKUP_PATH=D:\Backups\GFT\Test" >> $env:GITHUB_ENV
               echo "SITE_URL=https://test.geneticfamilytree.ai" >> $env:GITHUB_ENV
-              break
-            }
-
-            "uat" {
-              echo "ENVIRONMENT=UAT" >> $env:GITHUB_ENV
-              echo "SITE_NAME=GFT-UAT" >> $env:GITHUB_ENV
-              echo "APP_POOL=GFT-UAT" >> $env:GITHUB_ENV
-              echo "DEPLOY_PATH=D:\Sites\GFT\UAT" >> $env:GITHUB_ENV
-              echo "BACKUP_PATH=D:\Backups\GFT\UAT" >> $env:GITHUB_ENV
-              echo "SITE_URL=https://uat.geneticfamilytree.ai" >> $env:GITHUB_ENV
-              break
-            }
-
-            "main" {
-              echo "ENVIRONMENT=Production" >> $env:GITHUB_ENV
-              echo "SITE_NAME=GFT-PROD" >> $env:GITHUB_ENV
-              echo "APP_POOL=GFT-PROD" >> $env:GITHUB_ENV
-              echo "DEPLOY_PATH=D:\Sites\GFT\Production" >> $env:GITHUB_ENV
-              echo "BACKUP_PATH=D:\Backups\GFT\Production" >> $env:GITHUB_ENV
-              echo "SITE_URL=https://geneticfamilytree.ai" >> $env:GITHUB_ENV
               break
             }
 
