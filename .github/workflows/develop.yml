@@ -43,7 +43,7 @@ jobs:
     - uses: actions/checkout@v4   # needed so the .ps1 scripts are present on the server
 
     - name: Set Environment Variables
-      shell: pwsh
+      shell: powershell
       run: |
           switch ("${{ github.ref_name }}") {
 
