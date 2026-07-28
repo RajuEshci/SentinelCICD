@@ -42,6 +42,55 @@ jobs:
     steps:
     - uses: actions/checkout@v4   # needed so the .ps1 scripts are present on the server
 
+    - name: Set Environment Variables
+      shell: pwsh
+      run: |
+          switch ("${{ github.ref_name }}") {
+
+            "develop" {
+              echo "ENVIRONMENT=Development" >> $env:GITHUB_ENV
+              echo "SITE_NAME=GFT-DEV" >> $env:GITHUB_ENV
+              echo "APP_POOL=GFT-DEV" >> $env:GITHUB_ENV
+              echo "DEPLOY_PATH=D:\Sites\GFT\Dev" >> $env:GITHUB_ENV
+              echo "BACKUP_PATH=D:\Backups\GFT\Dev" >> $env:GITHUB_ENV
+              echo "SITE_URL=https://dev.geneticfamilytree.ai" >> $env:GITHUB_ENV
+              break
+            }
+
+            "test" {
+              echo "ENVIRONMENT=Testing" >> $env:GITHUB_ENV
+              echo "SITE_NAME=GFT-TEST" >> $env:GITHUB_ENV
+              echo "APP_POOL=GFT-TEST" >> $env:GITHUB_ENV
+              echo "DEPLOY_PATH=D:\Sites\GFT\Test" >> $env:GITHUB_ENV
+              echo "BACKUP_PATH=D:\Backups\GFT\Test" >> $env:GITHUB_ENV
+              echo "SITE_URL=https://test.geneticfamilytree.ai" >> $env:GITHUB_ENV
+              break
+            }
+
+            "uat" {
+              echo "ENVIRONMENT=UAT" >> $env:GITHUB_ENV
+              echo "SITE_NAME=GFT-UAT" >> $env:GITHUB_ENV
+              echo "APP_POOL=GFT-UAT" >> $env:GITHUB_ENV
+              echo "DEPLOY_PATH=D:\Sites\GFT\UAT" >> $env:GITHUB_ENV
+              echo "BACKUP_PATH=D:\Backups\GFT\UAT" >> $env:GITHUB_ENV
+              echo "SITE_URL=https://uat.geneticfamilytree.ai" >> $env:GITHUB_ENV
+              break
+            }
+
+            "main" {
+              echo "ENVIRONMENT=Production" >> $env:GITHUB_ENV
+              echo "SITE_NAME=GFT-PROD" >> $env:GITHUB_ENV
+              echo "APP_POOL=GFT-PROD" >> $env:GITHUB_ENV
+              echo "DEPLOY_PATH=D:\Sites\GFT\Production" >> $env:GITHUB_ENV
+              echo "BACKUP_PATH=D:\Backups\GFT\Production" >> $env:GITHUB_ENV
+              echo "SITE_URL=https://geneticfamilytree.ai" >> $env:GITHUB_ENV
+              break
+            }
+
+            default {
+              throw "Unknown branch: ${{ github.ref_name }}"
+            }
+            
     - name: Set Initial Stage
       run: echo "FAILED_STAGE=START" >> $env:GITHUB_ENV
 
